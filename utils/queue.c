@@ -59,7 +59,6 @@ void *qsearch(queue_t *qp,
 
     if (searchfn == NULL || mqp == NULL || skeyp == NULL || mqp->front == NULL)
     {
-        printf("Can't look for null element\n");
         return NULL;
     }
     for (node_t *p = mqp->front; p != NULL; p = p->next)
