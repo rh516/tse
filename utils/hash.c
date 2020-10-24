@@ -91,11 +91,7 @@ void happly(hashtable_t *htp, void (*fn)(void *ep))
       {
         if ((mhtp->queuesPtr)[i] != NULL)
         {
-          printf("**********************\n");
-          printf("Hash Index %d:\n", i);
           qapply((mhtp->queuesPtr)[i], fn);
-          printf("**********************\n");
-          printf("\n");
         }
       }
     }

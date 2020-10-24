@@ -82,6 +82,7 @@ webpage_t *pageload(int id, char *dirnm)
 			int len;
 			
 			fscanf(pageFile, "%s\n%d\n%d\n", url, &depth, &len);
+			
 			char *html = malloc(sizeof(char) * len + 1);
 
 			char c;
