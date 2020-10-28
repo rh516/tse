@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
 
     int id = atoi(argv[1]);
     FILE *newFile = fopen("output1", "w");
-    hashtable_t *index = hopen(50);
+    hashtable_t *index = hopen(100);
 
 	for(int idx = 1; idx <= id; idx++) {
 		webpage_t *page = pageload(idx, "../crawler/pages");

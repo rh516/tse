@@ -173,7 +173,7 @@ int32_t qput(queue_t *qp, void *elementp)
 
     node_t *node = makeNode(elementp);
 
-    if ((mqp->front == NULL))
+    if (mqp->front == NULL)
     {
         mqp->front = node;
         mqp->back = node;
