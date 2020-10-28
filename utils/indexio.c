@@ -89,12 +89,14 @@ hashtable_t *indexload(char *fname) {
 			token = strtok(NULL, s);
 			id = token;
 			token = strtok(NULL, s);
-			count = token;
 
-			codument_t *doc = malloc(sizeof(document_t));
-			doc->id = atoi(id);
-			doc->count = atoi(count);
-			qput(docsq->qp, doc);
+			if (token != NULL) {
+				count = token;
+				document_t *doc = malloc(sizeof(document_t));
+				doc->id = atoi(id);
+				doc->count = atoi(count);
+				qput(docsq->qp, doc);
+			}
 		}
 	}
 	fclose(f);
