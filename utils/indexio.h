@@ -1,14 +1,30 @@
 /* indexio.h
  */
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include <unistd.h>
 #include <webpage.h>
+#include <queue.h>
 #include <hash.h>
+
+typedef struct wordDocQueue {
+	queue_t *qp;
+	char *word;
+} wordDocQueue_t;
+
+typedef struct document {
+	int id;
+	int count;
+} docCount_t;
+
+
+docCount_t *makeDocCount(int id, int count);
+
+wordDocQueue_t *makeWordDocQueue(char *word);
+
+void freeQ(void *ep);
 
 /* indexsave() - saves index (hashtable of the document queues)
  * saves index to file in format

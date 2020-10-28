@@ -12,96 +12,117 @@
 #include <webpage.h>
 #include <hash.h>
 #include <queue.h>
+#include <indexio.h>
 
-static hashtable_t *index;
 static FILE *f;
 
-typedef struct docQueue {
-	queue_t *qp;
-	char *word;
-} docQueue_t;
-
-
-typedef struct document {
-	int id;
-	int count;
-} document_t;
-
-
-void savedoc(void *d) {
-	document_t *tempdoc = (document_t *)d;
-	fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
+static void saveCount(void *element) {
+	if (!element) {
+			printf("null element\n");
+		}
+	else {
+		docCount_t *tempdoc = (docCount_t *)element;
+		fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
+	}
 }
 
-void savewords(voide *q) {
-	docQueue_t *tempQ = (docQueue_t *)q;
-	fprintf(f, "%s ", tempQ->word);
-	qapply(tempQ->qp, savedoc);
+
+static void saveLine(void *element) {
+	if (!f || !element) {
+		printf("null file or null wordDocQueue\n");
+	}
+	else {
+		wordDocQueue_t *uniqueWord = (wordDocQueue_t *)element;
+
+		fprintf(f, "%s ", uniqueWord->word);
+		qapply(uniqueWord->qp, saveCount);
+		fprintf(f, "\n");
+	}
 }
+
+
+docCount_t *makeDocCount(int id, int count) {
+	docCount_t *doc;
+
+	if (!(doc = (docCount_t*)malloc(sizeof(docCount_t)))) {
+		printf("Error: malloc failed allocating doc\n");
+		return NULL;
+	}
+
+	doc -> id = id;
+	doc -> count = count;
+	return doc;	
+}
+
+
+wordDocQueue_t *makeWordDocQueue(char *word) {
+	wordDocQueue_t *wdq;
+
+	if (!(wdq = (wordDocQueue_t*)malloc(sizeof(wordDocQueue_t)))) { 
+		printf("Error: malloc failed allocating wordDocQueue\n");
+		return NULL;
+	}
+
+	if (!(wdq -> word = (char *)malloc((strlen(word) + 1) * sizeof(char)))) {
+		printf("Error: malloc failed allocating word\n");
+		return NULL;
+	}
+
+	strcpy(wdq -> word, word);
+	wdq -> qp = qopen();
+
+	return wdq;
+}
+
+
+void freeQ(void *ep) {
+	wordDocQueue_t *temp = (wordDocQueue_t *)ep;
+	free(temp->word);
+	qclose(temp->qp);
+}
+
 
 int32_t indexsave(hashtable_t *index, char *fname) {
 	f = fopen(fname, "w");
-	if (f == NULL) {
+
+	if (!index || !fname) {
 		printf("failed to open file");
-		return -1;
+		return 1;
 	}
 
-	happly(index, savewords);
+	happly(index, saveLine);
 	fclose(f);
-	fprintf(f, "\n");
 	
 	return 0;
 }
 
+
 hashtable_t *indexload(char *fname) {
-	FILE *f = fopen(fname, "r");
-	if (f == NULL) {
+	if (!fname) {
 		printf("indexload failed, cannot open file\n");
-		return -1;
+		return NULL;
 	}
 
-	index = hopen(500);
-	char *line;
-	char *s = " ";
-	
+	f = fopen(fname, "r");
 
-	//go through file line by line
-	while (fgets(line, sizeof(line), f) != NULL) {
-		char *word;
-		char *token;
+	hashtable_t *index = hopen(100);
 
-		// split line at every space
-		token = strtok(line, s);
+	char *word = (char *) malloc(sizeof(char) * 51);
+	int fScanVal = 0, id, count;
 
-		// word is first token
-		word = token;
+	while (fScanVal != EOF) {
+		fscanf(f, "%s", word);
+		wordDocQueue_t *wdq= makeWordDocQueue(word);
+		hput(index, wdq, word, strlen(word));
 
-		docQueue_t *docsq = malloc(sizeof(docQueue_t));
-		docsq->qp = qopen();
-
-		hput(index, docsq, word, sizeof(word));
-
-		// now parse through rest of tokens which include document IDs and counts
-		char *id;
-		char *count;
-
-		while (token != NULL) {
-			token = strtok(NULL, s);
-			id = token;
-			token = strtok(NULL, s);
-
-			if (token != NULL) {
-				count = token;
-				document_t *doc = malloc(sizeof(document_t));
-				doc->id = atoi(id);
-				doc->count = atoi(count);
-				qput(docsq->qp, doc);
-			}
+		while ((fScanVal = fscanf(f, "%d %d", &id, &count)) == 2) {
+			docCount_t *docCount = makeDocCount(id, count);
+			qput(wdq -> qp, docCount);
 		}
 	}
+	
+	free(word);
 	fclose(f);
+
 	return index;
 }
-			
-		
-
