@@ -97,7 +97,7 @@ int32_t indexsave(hashtable_t *index, char *fname) {
 }
 
 // hashtable_t *indexload(char *fname) {
-// 	FILE *f = fopen(fname, "r");
+// 	f = fopen(fname, "r");
 // 	if (f == NULL) {
 // 		printf("indexload failed, cannot open file\n");
 // 		return -1;
