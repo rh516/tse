@@ -16,29 +16,41 @@
 
 static FILE *f;
 
-
-void savedoc(void *d) {
-	docCount_t *tempdoc = (docCount_t *)d;
-	fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
+static void saveCount(void *element) {
+	if (!element) {
+			printf("null element\n");
+		}
+	else {
+		docCount_t *tempdoc = (docCount_t *)element;
+		fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
+	}
 }
 
-void savewords(void *q) {
-	wordDocQueue_t *tempQ = (wordDocQueue_t *)q;
-	fprintf(f, "%s ", tempQ->word);
-	qapply(tempQ->qp, savedoc);
+
+static void saveLine(void *element) {
+	if (!f || !element) {
+		printf("null file or null wordDocQueue\n");
+	}
+	else {
+		wordDocQueue_t *uniqueWord = (wordDocQueue_t *)element;
+
+		fprintf(f, "%s ", uniqueWord->word);
+		qapply(uniqueWord->qp, saveCount);
+		fprintf(f, "\n");
+	}
 }
 
 
 int32_t indexsave(hashtable_t *index, char *fname) {
-	FILE *f = fopen(fname, "w");
-	if (f == NULL) {
+	f = fopen(fname, "w");
+
+	if (!index || !fname) {
 		printf("failed to open file");
 		return 1;
 	}
 
-	happly(index, savewords);
+	happly(index, saveLine);
 	fclose(f);
-	fprintf(f, "\n");
 	
 	return 0;
 }

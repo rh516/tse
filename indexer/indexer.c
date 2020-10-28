@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
 	happly(index, sumQ);
 	printf("Total Count: %d\n", totalCount);
 
-	// indexsave(index, "../utils/test/indexnm");
+	indexsave(index, "output1");
 	
 	happly(index, freeQ);
 	fclose(newFile);
