@@ -8,6 +8,8 @@
 #include <sys/stat.h>
 #include <pageio.h>
 #include <ctype.h>
+#include <indexio.h>
+
 
 typedef struct docQueue {
 	queue_t *qp;
@@ -118,6 +120,8 @@ int main(int argc, char *argv[]) {
 	happly(index, finalCountQ);
 	printf("Total Count: %d\n", totalCount);
 
+	indexsave(index, "../utils/test/indexnm");
+	
 	happly(index, freeQ);
 	fclose(newFile);
 	hclose(index);
