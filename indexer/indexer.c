@@ -38,18 +38,11 @@ bool wordSearch(void *word, const void *wordKey) {
 		char *w = (char *) wordKey;
 		wordDocQueue_t *wdq = (wordDocQueue_t *) word;
 
-		if (strcmp(wdq->word, w) == 0) {
+		if (strcmp(w, wdq->word) == 0) {
 			return true;
 		}
 	}
 	return false;
-}
-
-
-void freeQ(void *ep) {
-	wordDocQueue_t *temp = (wordDocQueue_t *)ep;
-	free(temp->word);
-	qclose(temp->qp);
 }
 
 
@@ -81,28 +74,32 @@ int main(int argc, char *argv[]) {
 				NormalizeWord(word);
 				wordDocQueue_t *tempq;
 				if ((tempq = hsearch(index, wordSearch, word, strlen(word))) == NULL) {
-						// wordDocQueue doesn't exist yet, so create it
-						wordDocQueue_t *docsq = malloc(sizeof(wordDocQueue_t));
+                    // // wordDocQueue doesn't exist yet, so create it
+                    // wordDocQueue_t *docsq = malloc(sizeof(wordDocQueue_t));
 
-						docsq->word = word;
-						docsq->qp = qopen();
+                    // docsq->word = word;
+                    // docsq->qp = qopen();
+                    wordDocQueue_t *docsq = makeWordDocQueue(word);
 
-						docCount_t *doc = malloc(sizeof(docCount_t));
-						doc->id = idx;
-						doc->count = 1;
+                    docCount_t *doc = makeDocCount(idx, 1);
+                    // docCount_t *doc = malloc(sizeof(docCount_t));
+                    // doc->id = idx;
+                    // doc->count = 1;
 
-						qput(docsq->qp, doc);
-						hput(index, docsq, word, strlen(word));
+                    qput(docsq->qp, doc);
+                    hput(index, docsq, word, strlen(word));
 				}
 				else {
 					// wordDocQueue already exists
 					free(word);
 					docCount_t *tempdoc;
 					if ((tempdoc = qsearch(tempq->qp, docSearch, &idx)) == NULL) {
-						// doc hasn't been added to queue yet, so add it
-						docCount_t *doc = malloc(sizeof(docCount_t));
-						doc->id = idx;
-						doc->count = 1;
+						// // doc hasn't been added to queue yet, so add it
+						// docCount_t *doc = malloc(sizeof(docCount_t));
+						// doc->id = idx;
+						// doc->count = 1;
+						docCount_t *doc = makeDocCount(idx, 1);
+						
 						qput(tempq->qp, doc);
 					}
 					else {

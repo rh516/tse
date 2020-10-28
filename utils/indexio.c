@@ -41,6 +41,47 @@ static void saveLine(void *element) {
 }
 
 
+docCount_t *makeDocCount(int id, int count) {
+	docCount_t *doc;
+
+	if (!(doc = (docCount_t*)malloc(sizeof(docCount_t)))) {
+		printf("Error: malloc failed allocating doc\n");
+		return NULL;
+	}
+
+	doc -> id = id;
+	doc -> count = count;
+	return doc;	
+}
+
+
+wordDocQueue_t *makeWordDocQueue(char *word) {
+	wordDocQueue_t *wdq;
+
+	if (!(wdq = (wordDocQueue_t*)malloc(sizeof(wordDocQueue_t)))) { 
+		printf("Error: malloc failed allocating wordDocQueue\n");
+		return NULL;
+	}
+
+	if (!(wdq -> word = (char *)malloc((strlen(word) + 1) * sizeof(char)))) {
+		printf("Error: malloc failed allocating word\n");
+		return NULL;
+	}
+
+	strcpy(wdq -> word, word);
+	wdq -> qp = qopen();
+
+	return wdq;
+}
+
+
+void freeQ(void *ep) {
+	wordDocQueue_t *temp = (wordDocQueue_t *)ep;
+	free(temp->word);
+	qclose(temp->qp);
+}
+
+
 int32_t indexsave(hashtable_t *index, char *fname) {
 	f = fopen(fname, "w");
 
@@ -105,5 +146,3 @@ int32_t indexsave(hashtable_t *index, char *fname) {
 // 	return index;
 // }
 			
-		
-

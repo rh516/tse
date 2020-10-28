@@ -20,6 +20,12 @@ typedef struct document {
 } docCount_t;
 
 
+docCount_t *makeDocCount(int id, int count);
+
+wordDocQueue_t *makeWordDocQueue(char *word);
+
+void freeQ(void *ep);
+
 /* indexsave() - saves index (hashtable of the document queues)
  * saves index to file in format
  * <word> <docID1> <count1> <docID2> <count2> ...
