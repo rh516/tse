@@ -12,38 +12,28 @@
 #include <webpage.h>
 #include <hash.h>
 #include <queue.h>
+#include <indexio.h>
 
-static hashtable_t *index;
 static FILE *f;
-
-typedef struct docQueue {
-	queue_t *qp;
-	char *word;
-} docQueue_t;
-
-
-typedef struct document {
-	int id;
-	int count;
-} document_t;
 
 
 void savedoc(void *d) {
-	document_t *tempdoc = (document_t *)d;
+	docCount_t *tempdoc = (docCount_t *)d;
 	fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
 }
 
-void savewords(voide *q) {
-	docQueue_t *tempQ = (docQueue_t *)q;
+void savewords(void *q) {
+	wordDocQueue_t *tempQ = (wordDocQueue_t *)q;
 	fprintf(f, "%s ", tempQ->word);
 	qapply(tempQ->qp, savedoc);
 }
 
+
 int32_t indexsave(hashtable_t *index, char *fname) {
-	f = fopen(fname, "w");
+	FILE *f = fopen(fname, "w");
 	if (f == NULL) {
 		printf("failed to open file");
-		return -1;
+		return 1;
 	}
 
 	happly(index, savewords);
@@ -53,55 +43,55 @@ int32_t indexsave(hashtable_t *index, char *fname) {
 	return 0;
 }
 
-hashtable_t *indexload(char *fname) {
-	FILE *f = fopen(fname, "r");
-	if (f == NULL) {
-		printf("indexload failed, cannot open file\n");
-		return -1;
-	}
+// hashtable_t *indexload(char *fname) {
+// 	FILE *f = fopen(fname, "r");
+// 	if (f == NULL) {
+// 		printf("indexload failed, cannot open file\n");
+// 		return -1;
+// 	}
 
-	index = hopen(500);
-	char *line;
-	char *s = " ";
+// 	hashtable_t *index = hopen(500);
+// 	char *line;
+// 	char *s = " ";
 	
 
-	//go through file line by line
-	while (fgets(line, sizeof(line), f) != NULL) {
-		char *word;
-		char *token;
+// 	//go through file line by line
+// 	while (fgets(line, sizeof(line), f) != NULL) {
+// 		char *word;
+// 		char *token;
 
-		// split line at every space
-		token = strtok(line, s);
+// 		// split line at every space
+// 		token = strtok(line, s);
 
-		// word is first token
-		word = token;
+// 		// word is first token
+// 		word = token;
 
-		docQueue_t *docsq = malloc(sizeof(docQueue_t));
-		docsq->qp = qopen();
+// 		wordDocQueue_t *docsq = malloc(sizeof(wordDocQueue_t));
+// 		docsq->qp = qopen();
 
-		hput(index, docsq, word, sizeof(word));
+// 		hput(index, docsq, word, sizeof(word));
 
-		// now parse through rest of tokens which include document IDs and counts
-		char *id;
-		char *count;
+// 		// now parse through rest of tokens which include document IDs and counts
+// 		char *id;
+// 		char *count;
 
-		while (token != NULL) {
-			token = strtok(NULL, s);
-			id = token;
-			token = strtok(NULL, s);
+// 		while (token != NULL) {
+// 			token = strtok(NULL, s);
+// 			id = token;
+// 			token = strtok(NULL, s);
 
-			if (token != NULL) {
-				count = token;
-				document_t *doc = malloc(sizeof(document_t));
-				doc->id = atoi(id);
-				doc->count = atoi(count);
-				qput(docsq->qp, doc);
-			}
-		}
-	}
-	fclose(f);
-	return index;
-}
+// 			if (token != NULL) {
+// 				count = token;
+// 				docCount_t *doc = malloc(sizeof(docCount_t));
+// 				doc->id = atoi(id);
+// 				doc->count = atoi(count);
+// 				qput(docsq->qp, doc);
+// 			}
+// 		}
+// 	}
+// 	fclose(f);
+// 	return index;
+// }
 			
 		
 
