@@ -30,12 +30,12 @@ typedef struct document {
 
 void savedoc(void *d) {
 	document_t *tempdoc = (document_t *)d;
-	fprintf(f, "%d %d", tempdoc->id, tempdoc->count);
+	fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);
 }
 
 void savewords(voide *q) {
 	docQueue_t *tempQ = (docQueue_t *)q;
-	fprintf(f, "%s", tempQ->word);
+	fprintf(f, "%s ", tempQ->word);
 	qapply(tempQ->qp, savedoc);
 }
 
@@ -48,6 +48,7 @@ int32_t indexsave(hashtable_t *index, char *fname) {
 
 	happly(index, savewords);
 	fclose(f);
+	fprintf(f, "\n");
 	
 	return 0;
 }
@@ -60,6 +61,45 @@ hashtable_t *indexload(char *fname) {
 	}
 
 	index = hopen(500);
-
+	char *line;
+	char *s = " ";
 	
+
+	//go through file line by line
+	while (fgets(line, sizeof(line), f) != NULL) {
+		char *word;
+		char *token;
+
+		// split line at every space
+		token = strtok(line, s);
+
+		// word is first token
+		word = token;
+
+		docQueue_t *docsq = malloc(sizeof(docQueue_t));
+		docsq->qp = qopen();
+
+		hput(index, docsq, word, sizeof(word));
+
+		// now parse through rest of tokens which include document IDs and counts
+		char *id;
+		char *count;
+
+		while (token != NULL) {
+			token = strtok(NULL, s);
+			id = token;
+			token = strtok(NULL, s);
+			count = token;
+
+			codument_t *doc = malloc(sizeof(document_t));
+			doc->id = atoi(id);
+			doc->count = atoi(count);
+			qput(docsq->qp, doc);
+		}
+	}
+	fclose(f);
+	return index;
+}
+			
+		
 
