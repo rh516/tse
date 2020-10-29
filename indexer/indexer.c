@@ -59,62 +59,97 @@ void sumQ(void *elementPtr) {
 }
 
 
+bool dir_exists(char *dirname) {
+	static const char crawlerfile[] = ".crawler";
+	int filenamelength = strlen(dirname) + strlen(crawlerfile) + 2;
+	char *file = malloc(filenamelength);
+
+	sprintf(file, "%s/%s", dirname, crawlerfile);
+	
+  FILE *fp = fopen(file, "w");                                     
+  if (fp == NULL) {
+		free(file);
+		return false;                                                               
+	}
+	else {
+		fclose(fp);
+		free(file);
+		return true;
+	}
+}
+
+
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
+    if (argc < 3) {
 		printf("usage: indexer <id>\n");
 		return 1;
-	}
+		}
 
-    int id = atoi(argv[1]);
+		
+		char *dir = argv[1];
+		char *indexnm = argv[2];
+
+    //check if directory exists
+		if (!dir_exists(dir)) {
+			printf("directory does not exist\n");
+			return 1;
+		}
+		
     FILE *newFile = fopen("output1", "w");
     hashtable_t *index = hopen(100);
+		int idx = 1;
 
-	for(int idx = 1; idx <= id; idx++) {
-		webpage_t *page = pageload(idx, "../crawler/pages");
-		int pos = 0;
-        char *word;
+		webpage_t *page = pageload(idx, dir);
+		while (idx < 7) {
+			int pos = 0;
+			char *word;
         
-		while ((pos = webpage_getNextWord(page,pos,&word)) > 0) {
-			if (strlen(word) >= 3) { 
-				NormalizeWord(word);
+			while ((pos = webpage_getNextWord(page,pos,&word)) > 0) {
+				if (strlen(word) >= 3) { 
+					NormalizeWord(word);
 
-				wordDocQueue_t *foundWord;
-				if (!(foundWord = hsearch(index, wordSearch, word, strlen(word)))) {
-                    // wordDocQueue doesn't exist yet, so create it
-                    wordDocQueue_t *wdq = makeWordDocQueue(word);
-                    docCount_t *docCount = makeDocCount(idx, 1);
-                    
-                    qput(wdq -> qp, docCount);
-                    hput(index, wdq, word, strlen(word));
-				}
-				else {
-					// wordDocQueue already exists
-					docCount_t *foundDoc;
-					if (!(foundDoc = qsearch(foundWord->qp, docSearch, &idx))) {
-						// doc hasn't been added to queue yet, so add it
-						docCount_t *doc = makeDocCount(idx, 1);
-						
-						qput(foundWord -> qp, doc);
+					wordDocQueue_t *foundWord;
+					if (!(foundWord = hsearch(index, wordSearch, word, strlen(word)))) {
+						// wordDocQueue doesn't exist yet, so create it
+						wordDocQueue_t *wdq = makeWordDocQueue(word);
+						docCount_t *docCount = makeDocCount(idx, 1);
+
+						qput(wdq -> qp, docCount);
+						hput(index, wdq, word, strlen(word));
 					}
 					else {
-						// doc is already there, increment count
-						(foundDoc -> count)++;
+						// wordDocQueue already exists
+						free(word);
+						docCount_t *foundDoc;
+						if (!(foundDoc = qsearch(foundWord->qp, docSearch, &idx))) {
+						// doc hasn't been added to queue yet, so add it
+							docCount_t *doc = makeDocCount(idx, 1);						
+							qput(foundWord -> qp, doc);
+						}
+						else {
+							// doc is already there, increment count
+							(foundDoc -> count)++;
+						}
 					}
 				}
+				else {
+					free(word);
+				}
 			}
-            free(word);
+			webpage_delete(page);
+			idx++;
+		  page = pageload(idx, dir);
 		}
+
 		webpage_delete(page);
-	}
+		happly(index, sumQ);
+		printf("Total Count: %d\n", totalCount);
 
-	happly(index, sumQ);
-	printf("Total Count: %d\n", totalCount);
+		indexsave(index, indexnm);
+		happly(index, freeQ);
 
-	indexsave(index, "output1");
-	
-	happly(index, freeQ);
-	fclose(newFile);
-	hclose(index);
+		fclose(newFile);
+		hclose(index);
 
-	return 0;
+		return 0;
 }
