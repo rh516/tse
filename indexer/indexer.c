@@ -45,6 +45,12 @@ bool wordSearch(void *word, const void *wordKey) {
 	return false;
 }
 
+void freeQ(void *ep) {
+	wordDocQueue_t *temp = (wordDocQueue_t *)ep;
+	free(temp->word);
+	qclose(temp->qp);
+}
+
 
 int totalCount = 0;
 void incrementCount(void *ep) {
@@ -99,8 +105,8 @@ int main(int argc, char *argv[]) {
     hashtable_t *index = hopen(100);
 		int idx = 1;
 
-		webpage_t *page = pageload(idx, dir);
-		while (idx < 7) {
+		while (idx < 83) {
+			webpage_t *page = pageload(idx, dir);
 			int pos = 0;
 			char *word;
         
@@ -113,9 +119,10 @@ int main(int argc, char *argv[]) {
 						// wordDocQueue doesn't exist yet, so create it
 						wordDocQueue_t *wdq = makeWordDocQueue(word);
 						docCount_t *docCount = makeDocCount(idx, 1);
-
+						
 						qput(wdq -> qp, docCount);
 						hput(index, wdq, word, strlen(word));
+						free(word);
 					}
 					else {
 						// wordDocQueue already exists
@@ -138,10 +145,8 @@ int main(int argc, char *argv[]) {
 			}
 			webpage_delete(page);
 			idx++;
-		  page = pageload(idx, dir);
 		}
-
-		webpage_delete(page);
+		
 		happly(index, sumQ);
 		printf("Total Count: %d\n", totalCount);
 

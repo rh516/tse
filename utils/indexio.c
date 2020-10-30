@@ -75,13 +75,6 @@ wordDocQueue_t *makeWordDocQueue(char *word) {
 }
 
 
-void freeQ(void *ep) {
-	wordDocQueue_t *temp = (wordDocQueue_t *)ep;
-	free(temp->word);
-	qclose(temp->qp);
-}
-
-
 int32_t indexsave(hashtable_t *index, char *fname) {
 	f = fopen(fname, "w");
 
