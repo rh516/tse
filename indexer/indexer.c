@@ -86,14 +86,14 @@ bool dir_exists(char *dirname) {
 
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-		printf("usage: indexer <id>\n");
-		return 1;
+    if (argc < 4) {
+			printf("usage: indexer <pagedir> <indexnm> <numpages>\n");
+			return 1;
 		}
 
-		
 		char *dir = argv[1];
 		char *indexnm = argv[2];
+		int numPages = atoi(argv[3]);
 
     //check if directory exists
 		if (!dir_exists(dir)) {
@@ -101,11 +101,10 @@ int main(int argc, char *argv[]) {
 			return 1;
 		}
 		
-    FILE *newFile = fopen("output1", "w");
     hashtable_t *index = hopen(100);
 		int idx = 1;
 
-		while (idx < 83) {
+		while (idx <= numPages) {
 			webpage_t *page = pageload(idx, dir);
 			int pos = 0;
 			char *word;
@@ -152,8 +151,6 @@ int main(int argc, char *argv[]) {
 
 		indexsave(index, indexnm);
 		happly(index, freeQ);
-
-		fclose(newFile);
 		hclose(index);
 
 		return 0;

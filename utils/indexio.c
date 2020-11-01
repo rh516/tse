@@ -18,8 +18,8 @@ static FILE *f;
 
 static void saveCount(void *element) {
 	if (!element) {
-			printf("null element\n");
-		}
+		printf("null element\n");
+	}
 	else {
 		docCount_t *tempdoc = (docCount_t *)element;
 		fprintf(f, "%d %d ", tempdoc->id, tempdoc->count);

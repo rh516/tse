@@ -57,19 +57,19 @@ int32_t pagesave(webpage_t *page, int id, char *dirName)
 
 webpage_t *pageload(int id, char *dirnm)
 {
-    char *location = (char *)malloc(50 * sizeof(char));
+	char *location = (char *)malloc(50 * sizeof(char));
 
-    if (!id || !dirnm)
+	if (!id || !dirnm)
 	{
 		printf("Illegal arguments\n");
-        free(location);
+		free(location);
 		return NULL;
 	}
 
 	strcpy(location, dirnm);
-    if (isDirectoryExists(location) == 1)
-    {
-        strcat(location, "/");
+	if (isDirectoryExists(location) == 1)
+	{
+    strcat(location, "/");
 		char idStr[5];
 		sprintf(idStr, "%i", id);
 		strcat(location, idStr);
@@ -107,11 +107,11 @@ webpage_t *pageload(int id, char *dirnm)
 			free(location);
 			return NULL;
 		}
-    }
-    else
-    {
-        printf(" Directory does not exist\n");
+  }
+	else
+	{
+		printf(" Directory does not exist\n");
 		free(location);
 		return NULL;
-    }
+	}
 }

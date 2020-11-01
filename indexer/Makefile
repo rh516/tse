@@ -4,8 +4,5 @@ LIBS=-lutils -lcurl
 indexer:
 	gcc $(CFLAGS) indexer.c $(LIBS) -o $@
 
-indexioTest:
-	gcc $(CFLAGS) indexioTest.c $(LIBS) -o $@
-
 clean:
-	rm -f indexer indexioTest
+	rm -f indexer
