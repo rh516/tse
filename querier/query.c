@@ -100,7 +100,7 @@ void replace(queue_t *all, queue_t *check)
   qconcat(all, backup); //backup is going INTO all
 }
 
-int rank(char **wordArr, hashtable_t **index, queue_t *all, int max)
+int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
 {
   if (wordArr == NULL)
   {
@@ -132,10 +132,77 @@ int rank(char **wordArr, hashtable_t **index, queue_t *all, int max)
       wordDocQueue_t *searchresult = hsearch(index, wordSearch, word, strlen(word));
       if (searchresult == NULL)
       {
+        printf("word %s not in documnet \n", word);
         return 3;
       }
       replace(all, searchresult->qp);
     }
+  }
+}
+
+// it only takes in the queue "all"
+void sort(queue_t *all)
+{
+  //must make a backup queue - so after sorted, then put into the original queue
+  queue_t *backup = qopen();
+  docCount_t *curr;
+  int i = 0;
+  int holder[500]; //int array
+
+  while ((curr = qget(all)) != NULL) // comparing value of curr against null
+  {
+    qput(backup, curr);
+    holder[i] = curr->count; //sort "holder" array (where each value is a count of a specific doc) and use it
+    i++;
+  }
+
+  // sort the queue if it's not empty dawg
+  if (i > 0)
+  {
+    qsort(holder, i, sizeof(int), cmp);
+    for (int k = 0; k < i; k++)
+    {
+      // store the count of the first ting
+      int rank = holder[k];
+      docCount_t *data = qremove(backup, sortsearch, &rank);
+      qput(all, data);
+    }
+  }
+  qclose(backup);
+}
+
+// cmp takes in 2 pointers, convert b and a to int pointers, dereference, then b-a
+// basically = given 2 numbers, return to me the difference of the 2 numbers
+int cmp(const void *a, const void *b)
+{
+  return *(int *)b - *(int *)a;
+}
+
+// to see if a document is matching
+bool sortsearch(void *element, const void *key)
+{
+  if (element == NULL)
+  {
+    return false;
+  }
+  docCount_t *doc = (docCount_t *)element; // cast !
+  return doc->count == *(int *)key;
+}
+
+void printcount(void *element)
+{
+  if (element != NULL)
+  {
+    docCount_t *doc = (docCount_t *)element;
+    char *dir = "../crawler/pages";
+    char filename[100];
+    sprintf(filename, "%s/%d", dir, doc->id);
+    char url[100];
+    FILE *fp = fopen(filename, "r"); //read mode
+    // let's open up this file, scan, and put
+    fscanf(fp, "s", url);
+    fclose(filename);
+    printf("rank: %d: doc: %d : %s\n", doc->count, doc->id, url);
   }
 }
 
@@ -171,9 +238,16 @@ int main(void)
         // free wordarr, close all, print statement
         free(wordArr);
         qclose(all);
-        printf("word was not in index\n");
+        printf("error occured\n");
         continue; //goes onto the next line of input
       }
+
+      // we need to put it in order! sort em!
+      // we will pass "all" to the "sort" function
+      sort(all);
+      qapply(all, printcount);
+      free(wordArr);
+      qclose(all);
       printf("> ");
     }
 
