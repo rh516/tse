@@ -10,6 +10,31 @@
 #include <ctype.h>
 #include <indexio.h>
 
+bool wordSearch(void *word, const void *wordKey)
+{
+  if (word != NULL && wordKey != NULL)
+  {
+    char *w = (char *)wordKey;
+    wordDocQueue_t *wdq = (wordDocQueue_t *)word;
+
+    if (strcmp(w, wdq->word) == 0)
+    {
+      return true;
+    }
+  }
+  return false;
+}
+// to see if a document is matching
+bool sortsearch(void *element, const void *key)
+{
+  if (element == NULL)
+  {
+    return false;
+  }
+  docCount_t *doc = (docCount_t *)element; // cast !
+  return doc->count == *(int *)key;
+}
+
 bool isValid(char *c)
 {
   char *curr = c;
@@ -35,19 +60,11 @@ void NormalizeWord(char *word)
   }
 }
 
-bool wordSearch(void *word, const void *wordKey)
+// cmp takes in 2 pointers, convert b and a to int pointers, dereference, then b-a
+// basically = given 2 numbers, return to me the difference of the 2 numbers
+int cmp(const void *a, const void *b)
 {
-  if (word != NULL && wordKey != NULL)
-  {
-    char *w = (char *)wordKey;
-    wordDocQueue_t *wdq = (wordDocQueue_t *)word;
-
-    if (strcmp(w, wdq->word) == 0)
-    {
-      return true;
-    }
-  }
-  return false;
+  return *(int *)b - *(int *)a;
 }
 
 bool docSearch(void *doc, const void *id)
@@ -81,7 +98,7 @@ void replace(queue_t *all, queue_t *check)
 
   while ((curr = qget(all)) != NULL)
   {
-    docCount_t *pointer = qsearch(check, docSearch, curr->id);
+    docCount_t *pointer = qsearch(check, docSearch, &curr->id);
     if (pointer == NULL)
     {
       free(curr); //if it's not in there, you want to remove it.
@@ -138,16 +155,18 @@ int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
       replace(all, searchresult->qp);
     }
   }
+  return 0;
 }
 
 // it only takes in the queue "all"
-void sort(queue_t *all)
+int sort(queue_t *all)
 {
   //must make a backup queue - so after sorted, then put into the original queue
   queue_t *backup = qopen();
   docCount_t *curr;
   int i = 0;
   int holder[500]; //int array
+  int ret = 0;
 
   while ((curr = qget(all)) != NULL) // comparing value of curr against null
   {
@@ -168,25 +187,12 @@ void sort(queue_t *all)
       qput(all, data);
     }
   }
-  qclose(backup);
-}
-
-// cmp takes in 2 pointers, convert b and a to int pointers, dereference, then b-a
-// basically = given 2 numbers, return to me the difference of the 2 numbers
-int cmp(const void *a, const void *b)
-{
-  return *(int *)b - *(int *)a;
-}
-
-// to see if a document is matching
-bool sortsearch(void *element, const void *key)
-{
-  if (element == NULL)
+  else
   {
-    return false;
+    ret = -1;
   }
-  docCount_t *doc = (docCount_t *)element; // cast !
-  return doc->count == *(int *)key;
+  qclose(backup);
+  return ret;
 }
 
 void printcount(void *element)
@@ -200,16 +206,46 @@ void printcount(void *element)
     char url[100];
     FILE *fp = fopen(filename, "r"); //read mode
     // let's open up this file, scan, and put
-    fscanf(fp, "s", url);
-    fclose(filename);
+    fscanf(fp, "%s", url);
+    fclose(fp);
     printf("rank: %d: doc: %d : %s\n", doc->count, doc->id, url);
   }
+}
+
+int parse(char *line, char **words)
+{
+  const char s[2] = " ";
+  char *token;
+  token = strtok(line, s); // let me get the input, and imma spit that by space
+  // if the first word is "and" or "or", that's not a valid query
+  if (strcmp(token, "and") == 0 || strcmp(token, "or") == 0)
+  {
+    return -1;
+  }
+  NormalizeWord(token);
+  words[0] = token;
+  token = strtok(NULL, s);
+
+  int i = 1;
+  while (token != NULL)
+  {
+    NormalizeWord(token);
+    words[i] = token;
+    token = strtok(NULL, s);
+    i++;
+  }
+
+  if (strcmp(words[i - 1], "and") == 0 || strcmp(words[i - 1], "or") == 0)
+  {
+    return -1;
+  }
+  return i;
 }
 
 int main(void)
 {
   char input[101];
-  hashtable_t *index = indexload("../indexer/index1");
+  hashtable_t *index = indexload("../indexer/index3");
 
   printf("> ");
   while (fgets(input, 101, stdin) != NULL)
@@ -217,42 +253,59 @@ int main(void)
     if (!isValid(input))
     {
       printf("Invalid query \n");
+      continue;
     }
-    else
+    if (strlen(input) <= 1)
     {
-      NormalizeWord(input);
-      input[strlen(input) - 1] = '\0';
-
-      char *token = strtok(input, " ");
-      char *wordArr[50];
-      int i = 0;
-
-      while (token != NULL)
-      {
-        wordArr[i++] = token;
-        token = strtok(NULL, " ");
-      }
-      queue_t *all = qopen();
-      if (rank(wordArr, index, all, i) != 0)
-      {
-        // free wordarr, close all, print statement
-        free(wordArr);
-        qclose(all);
-        printf("error occured\n");
-        continue; //goes onto the next line of input
-      }
-
-      // we need to put it in order! sort em!
-      // we will pass "all" to the "sort" function
-      sort(all);
-      qapply(all, printcount);
-      free(wordArr);
-      qclose(all);
       printf("> ");
+      continue;
+    }
+    input[strlen(input) - 1] = '\0';
+
+    //parse the query and make a wordArr
+    int maxwords = strlen(input) / 2;
+    // malloc for arrays
+    char **wordArr = calloc(maxwords, sizeof(char *));
+    printf("%s\n", input);
+
+    // limit tells us how many words there are actually
+    int limit = parse(input, wordArr);
+
+    if (limit < 0)
+    {
+      printf("invalid query\n> ");
+      free(wordArr);
     }
 
-    happly(index, freeQ);
-    hclose(index);
-    printf("\n");
-    return 0;
+    queue_t *all = qopen();
+    if (rank(wordArr, index, all, limit) != 0)
+    {
+      // free wordarr, close all, print statement
+      free(wordArr);
+
+      printf("error occured \n> ");
+      qclose(all);
+      continue; //goes onto the next line of input
+    }
+
+    // we need to put it in order! sort em!a
+    // we will pass "all" to the "sort" function
+    int ret = sort(all);
+
+    if (ret < 0)
+    {
+      printf("no result\n> ");
+    }
+    qapply(all, printcount);
+
+    //reset
+    free(wordArr);
+    qclose(all);
+    printf("> ");
   }
+
+  happly(index, freeQ);
+  hclose(index);
+  printf("\n");
+  return 0;
+}
