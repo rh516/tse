@@ -10,6 +10,8 @@
 #include <ctype.h>
 #include <indexio.h>
 
+FILE *out;
+
 bool wordSearch(void *word, const void *wordKey)
 {
   if (word != NULL && wordKey != NULL)
@@ -35,20 +37,35 @@ bool sortsearch(void *element, const void *key)
   return doc->count == *(int *)key;
 }
 
-bool isValid(char *c)
-{
-  char *curr = c;
-  while ((int)(*curr) != 10)
-  {
-    if (!isalpha(*curr))
-    {
-      if (!((int)(*curr) == 9 || (int)(*curr) == 32))
-      {
-        return false;
-      }
-    }
-    curr += 1;
-  }
+bool dir_exists(char *dirname) {                                                
+  static const char crawlerfile[] = ".crawler";                                 
+  int filenamelength = strlen(dirname) + strlen(crawlerfile) + 2;               
+  char *file = malloc(filenamelength);                                          
+                                                                                
+  sprintf(file, "%s/%s", dirname, crawlerfile);                                 
+                                                                                
+  FILE *fp = fopen(file, "w");                                                  
+  if (fp == NULL) {                                                             
+    free(file);                                                                 
+    return false;                                                              \
+                                                                                
+  }                                                                             
+  else {                                                                        
+    fclose(fp);                                                                 
+    free(file);                                                                 
+    return true;                                                                
+  }                                                                             
+}
+
+bool isValid(char *line) {
+  for (int i=0; i<strlen(line); i++) {
+		if (isalpha(line[i]) == 0 && isspace(line[i]) == 0) {
+			return false;
+		}
+		if (line[i] == '\t') {
+			line[i] = ' ';
+		}
+	}
   return true;
 }
 
@@ -91,7 +108,7 @@ void freeQ(void *ep)
 
 // go thru the all queue, check if everything in the "all" queue is in the "check" queue,
 // if not, remove! else, update (if lower value)
-void replace(queue_t *all, queue_t *check)
+void update(queue_t *all, queue_t *check)
 {
   queue_t *backup = qopen();
   docCount_t *curr;
@@ -117,6 +134,40 @@ void replace(queue_t *all, queue_t *check)
   qconcat(all, backup); //backup is going INTO all
 }
 
+void copy(queue_t *all, queue_t *searchres) {
+	if (searchres == NULL) {
+		return;
+	}
+	queue_t *backup = qopen();
+	docCount_t *curr;
+
+	while ((curr= qget(searchres)) != NULL) {
+		docCount_t *doc = malloc(sizeof(docCount_t));
+		doc->id = curr->id;
+		doc->count = curr->count;
+		qput(backup, curr);
+		qput(all, doc);
+	}
+
+	qconcat(searchres, backup);
+}
+			
+	// combine
+void combine(queue_t *all, queue_t *temp) {
+	docCount_t *curr;
+	while ((curr = qget(temp)) != NULL) {
+		docCount_t * tempdoc;
+		if((tempdoc = qsearch(all, docSearch, &(curr->id))) != NULL) {
+			tempdoc->count += curr->count;
+			free(curr);
+		}
+		else {
+			qput(all, curr);
+		}
+	}
+	qclose(temp);
+}
+						 
 int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
 {
   if (wordArr == NULL)
@@ -124,37 +175,44 @@ int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
     return 3;
   }
 
-  wordDocQueue_t *searchresult = hsearch(index, wordSearch, wordArr[0], strlen(wordArr[0]));
-  if (searchresult == NULL)
-  {
-    return 3;
-  }
-
-  queue_t *backup = qopen();
-  docCount_t *curr;
-
-  while ((curr = qget(searchresult->qp)) != NULL)
-  {
-    docCount_t *doc = makeDocCount(curr->id, curr->count);
-    qput(all, doc);
-    qput(backup, curr);
-  }
-  qconcat(searchresult->qp, backup);
-
-  for (int i = 1; i < max; i++)
-  {
+  queue_t *temp = NULL;
+	
+  for (int i = 0; i < max; i++) {
     char *word = wordArr[i]; // my current word <3
-    if (strcmp(word, "and") != 0 && strlen(word) > 2)
-    {
+		if (strcmp(word,"or") == 0) {
+			combine(all, temp);
+			temp = NULL;
+		}
+    else if (strcmp(word, "and") != 0 && strlen(word) > 2){
       wordDocQueue_t *searchresult = hsearch(index, wordSearch, word, strlen(word));
-      if (searchresult == NULL)
-      {
-        printf("word %s not in documnet \n", word);
-        return 3;
+			if (searchresult == NULL) {
+				qclose(temp);
+				temp = NULL;
+				int j = i + 1;
+				while (j < max) {
+					char *word2 = wordArr[j];
+					if (strcmp(word2, "or") == 0) {
+						break;
+					}
+					j++;
+				}
+				i = j-1;
       }
-      replace(all, searchresult->qp);
+
+			else if (temp == NULL) {
+				temp = qopen();
+				copy(temp, searchresult->qp);
+			}
+			
+			else {
+				update(temp, searchresult->qp);
+			}
     }
-  }
+	}
+	if (temp != NULL) {
+		combine(all, temp);
+		temp = NULL;
+	}
   return 0;
 }
 
@@ -208,7 +266,7 @@ void printcount(void *element)
     // let's open up this file, scan, and put
     fscanf(fp, "%s", url);
     fclose(fp);
-    printf("rank: %d: doc: %d : %s\n", doc->count, doc->id, url);
+    fprintf(out,"rank: %d: doc: %d : %s\n", doc->count, doc->id, url);
   }
 }
 
@@ -216,10 +274,9 @@ int parse(char *line, char **words)
 {
   const char s[2] = " ";
   char *token;
-  token = strtok(line, s); // let me get the input, and imma spit that by space
+  token = strtok(line, s); //split input by space
   // if the first word is "and" or "or", that's not a valid query
-  if (strcmp(token, "and") == 0 || strcmp(token, "or") == 0)
-  {
+  if (strcmp(token, "and") == 0 || strcmp(token, "or") == 0) {
     return -1;
   }
   NormalizeWord(token);
@@ -227,10 +284,14 @@ int parse(char *line, char **words)
   token = strtok(NULL, s);
 
   int i = 1;
-  while (token != NULL)
-  {
+	while (token != NULL){
     NormalizeWord(token);
-    words[i] = token;
+		words[i] = token;
+		if (strcmp(words[i-1], "and") == 0 || strcmp(words[i-1], "or")== 0) {
+				if (strcmp(words[i], "or") == 0 || strcmp(words[i], "and") == 0) {
+				printf("cannot have adjacent ands and ors");
+				}
+		}
     token = strtok(NULL, s);
     i++;
   }
@@ -242,22 +303,65 @@ int parse(char *line, char **words)
   return i;
 }
 
-int main(void)
-{
-  char input[101];
-  hashtable_t *index = indexload("../indexer/index3");
+bool quietflag(const int argc, char *argv[]) {
+	if (argc == 6) {
+		if (strcmp(argv[3], "-q") == 0) {
+			return true;
+		}
+	}
+	return false;
+}
 
-  printf("> ");
-  while (fgets(input, 101, stdin) != NULL)
-  {
-    if (!isValid(input))
-    {
-      printf("Invalid query \n");
+int main(const int argc, char *argv[]) {
+
+	// set in and out to stdin and stfout
+	FILE *in = stdin;
+	out = stdout;
+
+	
+	// check if valid number of arguments passed in
+	if (argc > 3 && (strcmp(argv[3],"-q") != 0)){
+		printf("usage: query <pageDirectory> <indexFile> [-q]\n");
+		exit(1);
+	}
+
+	if (!dir_exists(argv[1])) {
+		printf("%s is not a valid directory\n", argv[1]);
+		exit(2);
+	}
+
+	FILE *indexfile;
+	if((indexfile = fopen(argv[2], "r+")) == NULL) {
+		printf("cannot read indexfile");
+		exit(3);
+	}
+	fclose(indexfile);
+	
+  char input[500];
+
+	//open input file is flag present
+	if (quietflag(argc, argv)) {
+		in = fopen(argv[4], "r");
+		out = fopen(argv[5], "w");
+		if (in == NULL) {
+			printf("cannot read input file\n");
+			fclose(out);
+			exit(3);
+		}
+}
+	else {
+		printf("> ");
+	}
+
+hashtable_t *index = indexload(argv[2]);
+	
+  while (fgets(input, 500, in) != NULL) {
+    if (!isValid(input)) {
+      fprintf(out, "Invalid input \n> ");
       continue;
     }
-    if (strlen(input) <= 1)
-    {
-      printf("> ");
+    if (strlen(input) <= 1) {
+      fprintf(out, "> ");
       continue;
     }
     input[strlen(input) - 1] = '\0';
@@ -266,24 +370,23 @@ int main(void)
     int maxwords = strlen(input) / 2;
     // malloc for arrays
     char **wordArr = calloc(maxwords, sizeof(char *));
-    printf("%s\n", input);
+    fprintf(out, "input: %s\n", input);
 
     // limit tells us how many words there are actually
     int limit = parse(input, wordArr);
 
-    if (limit < 0)
-    {
-      printf("invalid query\n> ");
+    if (limit < 0) {
+      fprintf(out, "invalid query\n> ");
       free(wordArr);
-    }
+			continue;
+		}
 
     queue_t *all = qopen();
-    if (rank(wordArr, index, all, limit) != 0)
-    {
+    if (rank(wordArr, index, all, limit) != 0) {
       // free wordarr, close all, print statement
       free(wordArr);
 
-      printf("error occured \n> ");
+      fprintf(out, "error occured \n> ");
       qclose(all);
       continue; //goes onto the next line of input
     }
@@ -292,20 +395,24 @@ int main(void)
     // we will pass "all" to the "sort" function
     int ret = sort(all);
 
-    if (ret < 0)
-    {
-      printf("no result\n> ");
+    if (ret < 0) {
+      fprintf(out, "no result\n ");
     }
     qapply(all, printcount);
 
     //reset
     free(wordArr);
     qclose(all);
-    printf("> ");
+    fprintf(out, "> ");
   }
 
+	// check if -q present and then close files
+	if (quietflag(argc, argv)) {
+		fclose(in);
+		fclose(out);
+	}
+
   happly(index, freeQ);
-  hclose(index);
-  printf("\n");
+hclose(index);
   return 0;
 }

@@ -114,6 +114,7 @@ void *qremove(queue_t *qp,
                 temp = p->next;
                 p->next = temp->next;
                 free(temp);
+								break;
             }
             else
             {
@@ -188,13 +189,12 @@ int32_t qput(queue_t *qp, void *elementp)
 }
 
 // removes and returns the first element of the queue
-void *qget(queue_t *qp)
-{
-    myQueueType *mqp = (myQueueType *)qp;
+void *qget(queue_t *qp) {
+	if (qp != NULL) {
+		myQueueType *mqp = (myQueueType *)qp;
     node_t *retNode = mqp->front;
 
-    if (retNode == NULL)
-    {
+    if (retNode == NULL){
         return NULL;
     }
 
@@ -202,6 +202,8 @@ void *qget(queue_t *qp)
     void *data = retNode->data;
     free(retNode);
     return data;
+	}
+	return NULL;
 }
 
 // applies a function to all elements in the queue;
@@ -220,17 +222,28 @@ void qapply(queue_t *qp, void (*fn)(void *elementp))
 
 // concatenatenates elements of q2 into q1
 // q2 is deallocated, closed, and unusable upon completion
-void qconcat(queue_t *q1p, queue_t *q2p)
-{
-    myQueueType *mq2p = (myQueueType *)q2p;
-    node_t *currentNode = mq2p->front;
-
-    while (currentNode != NULL)
-    {
-        qput(q1p, currentNode->data);
-        currentNode->data = NULL;
-        currentNode = currentNode->next;
-    }
-
-    qclose((queue_t *)mq2p);
+void qconcat(queue_t *q1p, queue_t *q2p){
+	myQueueType *q1 = (myQueueType *)q1p;
+	myQueueType *q2 = (myQueueType *)q2p;
+	if (q1p == NULL && q2p != NULL) {
+		q1p = q2p;
+	}
+	else if (q1p == NULL && q2p == NULL) {
+		return;
+	}
+	else if (q1 != NULL && q2 != NULL) {
+		if (q1->front == NULL && q2->front !=NULL) {
+			q1->front = q2->front;
+			q1->back = q2-> back;
+			q2->front = NULL;
+			q2->back = NULL;
+		}
+		else if (q1->front != NULL && q2->front !=NULL) {
+			q1->back->next = q2->front;
+			q1->back = q2->back;
+			q2->front = NULL;
+      q2->back = NULL;  
+		}
+		qclose(q2);
+	}
 }
