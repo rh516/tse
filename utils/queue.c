@@ -114,7 +114,7 @@ void *qremove(queue_t *qp,
                 temp = p->next;
                 p->next = temp->next;
                 free(temp);
-								break;
+				break;
             }
             else
             {
@@ -222,9 +222,10 @@ void qapply(queue_t *qp, void (*fn)(void *elementp))
 
 // concatenatenates elements of q2 into q1
 // q2 is deallocated, closed, and unusable upon completion
-void qconcat(queue_t *q1p, queue_t *q2p){
+void qconcat(queue_t *q1p, queue_t *q2p) {
 	myQueueType *q1 = (myQueueType *)q1p;
 	myQueueType *q2 = (myQueueType *)q2p;
+
 	if (q1p == NULL && q2p != NULL) {
 		q1p = q2p;
 	}
@@ -232,17 +233,17 @@ void qconcat(queue_t *q1p, queue_t *q2p){
 		return;
 	}
 	else if (q1 != NULL && q2 != NULL) {
-		if (q1->front == NULL && q2->front !=NULL) {
+		if (q1->front == NULL && q2->front != NULL) {
 			q1->front = q2->front;
 			q1->back = q2-> back;
 			q2->front = NULL;
 			q2->back = NULL;
 		}
-		else if (q1->front != NULL && q2->front !=NULL) {
+		else if (q1->front != NULL && q2->front != NULL) {
 			q1->back->next = q2->front;
 			q1->back = q2->back;
 			q2->front = NULL;
-      q2->back = NULL;  
+            q2->back = NULL;  
 		}
 		qclose(q2);
 	}

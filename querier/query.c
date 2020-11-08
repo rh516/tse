@@ -26,6 +26,7 @@ bool wordSearch(void *word, const void *wordKey)
   }
   return false;
 }
+
 // to see if a document is matching
 bool sortsearch(void *element, const void *key)
 {
@@ -128,10 +129,10 @@ void update(queue_t *all, queue_t *check)
       {
         curr->count = pointer->count;
       }
-      qput(backup, curr); //regardless of comparison, should put curr into backup
+      qput(backup, curr); // regardless of comparison, should put curr into backup
     }
   }
-  qconcat(all, backup); //backup is going INTO all
+  qconcat(all, backup); // backup is going INTO all
 }
 
 void copy(queue_t *all, queue_t *searchres) {
@@ -152,13 +153,14 @@ void copy(queue_t *all, queue_t *searchres) {
 	qconcat(searchres, backup);
 }
 			
-	// combine
+// combine
 void combine(queue_t *all, queue_t *temp) {
 	docCount_t *curr;
+
 	while ((curr = qget(temp)) != NULL) {
-		docCount_t * tempdoc;
-		if((tempdoc = qsearch(all, docSearch, &(curr->id))) != NULL) {
-			tempdoc->count += curr->count;
+		docCount_t *tempdoc;
+		if ((tempdoc = qsearch(all, docSearch, &(curr -> id))) != NULL) {
+			tempdoc -> count += curr -> count;
 			free(curr);
 		}
 		else {
@@ -179,11 +181,12 @@ int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
 	
   for (int i = 0; i < max; i++) {
     char *word = wordArr[i]; // my current word <3
+
 		if (strcmp(word,"or") == 0) {
 			combine(all, temp);
 			temp = NULL;
 		}
-    else if (strcmp(word, "and") != 0 && strlen(word) > 2){
+    else if (strcmp(word, "and") != 0 && strlen(word) > 2) {
       wordDocQueue_t *searchresult = hsearch(index, wordSearch, word, strlen(word));
 			if (searchresult == NULL) {
 				qclose(temp);
@@ -196,7 +199,7 @@ int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
 					}
 					j++;
 				}
-				i = j-1;
+				i = j - 1;
       }
 
 			else if (temp == NULL) {
@@ -219,7 +222,7 @@ int rank(char **wordArr, hashtable_t *index, queue_t *all, int max)
 // it only takes in the queue "all"
 int sort(queue_t *all)
 {
-  //must make a backup queue - so after sorted, then put into the original queue
+  // must make a backup queue - so after sorted, then put into the original queue
   queue_t *backup = qopen();
   docCount_t *curr;
   int i = 0;
@@ -229,7 +232,7 @@ int sort(queue_t *all)
   while ((curr = qget(all)) != NULL) // comparing value of curr against null
   {
     qput(backup, curr);
-    holder[i] = curr->count; //sort "holder" array (where each value is a count of a specific doc) and use it
+    holder[i] = curr->count; // sort "holder" array (where each value is a count of a specific doc) and use it
     i++;
   }
 
@@ -261,6 +264,7 @@ void printcount(void *element)
     char *dir = "../crawler/pages";
     char filename[100];
     sprintf(filename, "%s/%d", dir, doc->id);
+
     char url[100];
     FILE *fp = fopen(filename, "r"); //read mode
     // let's open up this file, scan, and put
@@ -274,7 +278,7 @@ int parse(char *line, char **words)
 {
   const char s[2] = " ";
   char *token;
-  token = strtok(line, s); //split input by space
+  token = strtok(line, s); // split input by space
   // if the first word is "and" or "or", that's not a valid query
   if (strcmp(token, "and") == 0 || strcmp(token, "or") == 0) {
     return -1;
@@ -284,20 +288,19 @@ int parse(char *line, char **words)
   token = strtok(NULL, s);
 
   int i = 1;
-	while (token != NULL){
+	while (token != NULL) {
     NormalizeWord(token);
 		words[i] = token;
 		if (strcmp(words[i-1], "and") == 0 || strcmp(words[i-1], "or")== 0) {
-				if (strcmp(words[i], "or") == 0 || strcmp(words[i], "and") == 0) {
-				printf("cannot have adjacent ands and ors");
-				}
+      if (strcmp(words[i], "or") == 0 || strcmp(words[i], "and") == 0) {
+        printf("cannot have adjacent ands and ors");
+      }
 		}
     token = strtok(NULL, s);
     i++;
   }
 
-  if (strcmp(words[i - 1], "and") == 0 || strcmp(words[i - 1], "or") == 0)
-  {
+  if (strcmp(words[i - 1], "and") == 0 || strcmp(words[i - 1], "or") == 0) {
     return -1;
   }
   return i;
@@ -313,12 +316,10 @@ bool quietflag(const int argc, char *argv[]) {
 }
 
 int main(const int argc, char *argv[]) {
-
 	// set in and out to stdin and stfout
 	FILE *in = stdin;
 	out = stdout;
 
-	
 	// check if valid number of arguments passed in
 	if (argc > 3 && (strcmp(argv[3],"-q") != 0)){
 		printf("usage: query <pageDirectory> <indexFile> [-q]\n");
@@ -331,7 +332,7 @@ int main(const int argc, char *argv[]) {
 	}
 
 	FILE *indexfile;
-	if((indexfile = fopen(argv[2], "r+")) == NULL) {
+	if ((indexfile = fopen(argv[2], "r+")) == NULL) {
 		printf("cannot read indexfile");
 		exit(3);
 	}
@@ -339,7 +340,7 @@ int main(const int argc, char *argv[]) {
 	
   char input[500];
 
-	//open input file is flag present
+	// open input file is flag present
 	if (quietflag(argc, argv)) {
 		in = fopen(argv[4], "r");
 		out = fopen(argv[5], "w");
@@ -348,12 +349,12 @@ int main(const int argc, char *argv[]) {
 			fclose(out);
 			exit(3);
 		}
-}
+  }
 	else {
 		printf("> ");
 	}
 
-hashtable_t *index = indexload(argv[2]);
+  hashtable_t *index = indexload(argv[2]);
 	
   while (fgets(input, 500, in) != NULL) {
     if (!isValid(input)) {
@@ -368,6 +369,7 @@ hashtable_t *index = indexload(argv[2]);
 
     //parse the query and make a wordArr
     int maxwords = strlen(input) / 2;
+
     // malloc for arrays
     char **wordArr = calloc(maxwords, sizeof(char *));
     fprintf(out, "input: %s\n", input);
@@ -391,7 +393,7 @@ hashtable_t *index = indexload(argv[2]);
       continue; //goes onto the next line of input
     }
 
-    // we need to put it in order! sort em!a
+    // we need to put it in order! sort em!
     // we will pass "all" to the "sort" function
     int ret = sort(all);
 
@@ -400,7 +402,7 @@ hashtable_t *index = indexload(argv[2]);
     }
     qapply(all, printcount);
 
-    //reset
+    // reset
     free(wordArr);
     qclose(all);
     fprintf(out, "> ");
@@ -413,6 +415,6 @@ hashtable_t *index = indexload(argv[2]);
 	}
 
   happly(index, freeQ);
-hclose(index);
+  hclose(index);
   return 0;
 }
