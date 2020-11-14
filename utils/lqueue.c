@@ -6,16 +6,11 @@
 #include <lqueue.h>
 #include <queue.h>
 
-typedef struct lqueue {
-  pthread_mutex_t m;
-  queue_t *qptr;
-} mylqueue_t;
-
 
 lqueue_t *lqopen(void) {
-  mylqueue_t *lqptr;
+  lqueue_t *lqptr;
 
-  if (!(lqptr = (mylqueue_t *)malloc(sizeof(mylqueue_t)))) {
+  if (!(lqptr = (lqueue_t *)malloc(sizeof(lqueue_t)))) {
     printf("Error: malloc failed allocating locked queue\n");
     return NULL;
   }
@@ -28,7 +23,7 @@ lqueue_t *lqopen(void) {
 
 
 int32_t lqput(lqueue_t *lqp, void *elementp) {
-  mylqueue_t *mlqp = (mylqueue_t *)lqp;
+  lqueue_t *mlqp = (lqueue_t *)lqp;
   pthread_mutex_lock(&(mlqp -> m));
 
   if (qput(mlqp -> qptr, elementp) != 0) {
@@ -42,7 +37,7 @@ int32_t lqput(lqueue_t *lqp, void *elementp) {
 
 
 void *lqget(lqueue_t *lqp) {
-  mylqueue_t *mlqp = (mylqueue_t *)lqp;
+  lqueue_t *mlqp = (lqueue_t *)lqp;
 
   pthread_mutex_lock(&(mlqp -> m));
   void *elementPtr = qget(mlqp -> qptr);
@@ -53,7 +48,7 @@ void *lqget(lqueue_t *lqp) {
 
 
 void lqapply(lqueue_t *lqp, void (*fn)(void *elementp)) {
-  mylqueue_t *mlqp = (mylqueue_t *)lqp;
+  lqueue_t *mlqp = (lqueue_t *)lqp;
 
   pthread_mutex_lock(&(mlqp -> m));
   qapply(mlqp -> qptr, fn);
@@ -62,7 +57,7 @@ void lqapply(lqueue_t *lqp, void (*fn)(void *elementp)) {
 
 
 void *lqsearch(lqueue_t *lqp, bool (*searchfn)(void *elementp, const void *keyp), const void *skeyp) {
-  mylqueue_t *mlqp = (mylqueue_t *)lqp;
+  lqueue_t *mlqp = (lqueue_t *)lqp;
 
   pthread_mutex_lock(&(mlqp -> m));
   void *elementPtr = qsearch(mlqp -> qptr, searchfn, skeyp);
@@ -73,7 +68,7 @@ void *lqsearch(lqueue_t *lqp, bool (*searchfn)(void *elementp, const void *keyp)
 
 
 void lqclose(lqueue_t *lqp) {
-  mylqueue_t *mlqp = (mylqueue_t *)lqp;
+  lqueue_t *mlqp = (lqueue_t *)lqp;
 
   qclose(mlqp -> qptr);
   pthread_mutex_destroy(&(mlqp -> m));

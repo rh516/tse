@@ -4,9 +4,13 @@
  */
 #include <stdint.h>
 #include <stdbool.h>
+#include "queue.h"
 
 /* the queue representation is hidden from users of the module */
-typedef void lqueue_t;		
+typedef struct lqueue {
+	pthread_mutex_t m;
+  queue_t *qptr;   
+} lqueue_t;
 
 /* lqopen creates a locked queue
 *	the mutex m must be destroyed in lqclose()

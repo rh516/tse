@@ -13,6 +13,7 @@
 #include <hash.h>
 #include <queue.h>
 #include <indexio.h>
+#include <lhash.h>
 
 static FILE *f;
 
@@ -75,20 +76,18 @@ wordDocQueue_t *makeWordDocQueue(char *word) {
 }
 
 
-int32_t indexsave(hashtable_t *index, char *fname) {
-	f = fopen(fname, "w");
+int32_t indexsave(hashtable_t *index, char *fname) {                         
+  f = fopen(fname, "w");
 
 	if (!index || !fname) {
-		printf("failed to open file");
-		return 1;
-	}
+    printf("failed to open file");
+    return 1;
+  }
 
-	happly(index, saveLine);
-	fclose(f);
-	
+	happly(index, saveLine);                                                     
+  fclose(f);
 	return 0;
-}
-
+} 
 
 hashtable_t *indexload(char *fname) {
 	if (!fname) {

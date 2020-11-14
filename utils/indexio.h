@@ -32,4 +32,5 @@ wordDocQueue_t *makeWordDocQueue(char *word);
 
 int32_t indexsave(hashtable_t *index, char *fname);
 
+
 hashtable_t *indexload(char *fname);
