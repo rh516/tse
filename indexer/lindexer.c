@@ -128,8 +128,10 @@ int main(int argc, char *argv[]) {
 	//join threads
 	for (int j =1; j<=numThreads; j++) {
 		pthread_join(thread[j], NULL);
+		free(args[j]);
 	}
 
+	free(args);
 	// print total number of unique words
 	lhapply(index, sumQ);
 	printf("Total Count: %d\n", totalCount);
