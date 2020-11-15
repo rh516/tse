@@ -6,8 +6,14 @@
  */
 #include <stdint.h>
 #include <stdbool.h>
+#include <hash.h>
+#include <queue.h>
+#include <pthread.h>
 
-typedef void lhashtable_t;	/* representation of a hashtable hidden */
+typedef struct lhashtable {
+	pthread_mutex_t m;
+  hashtable_t *htptr;
+}	lhashtable_t;
 
 /* hopen -- opens a hash table with initial size hsize */
 lhashtable_t *lhopen(uint32_t hsize);

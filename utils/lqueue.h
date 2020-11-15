@@ -4,7 +4,8 @@
  */
 #include <stdint.h>
 #include <stdbool.h>
-#include "queue.h"
+#include <queue.h>
+#include <pthread.h>
 
 /* the queue representation is hidden from users of the module */
 typedef struct lqueue {

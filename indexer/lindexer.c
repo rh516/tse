@@ -137,29 +137,25 @@ int main(int argc, char *argv[]) {
 	//save index - modified indexsave to take in a locked hash table
 	printf("saving index now\n");
 
-	hashtable_t *hashindex = malloc(sizeof(hashtable_t *));
-	hashindex = index->htptr;
-
-	indexsave(hashindex, indexnm);
+	indexsave(index -> htptr, indexnm);
 	
 	// free all the queues in the index and then the index
 	lhapply(index, freeQ);
 	lhclose(index);
-	free(hashindex);
 	return 0;
 }
 
 void *makeindex(void *args) {
 	// get all the various arguments from the void argument passed in 
 	arginfo_t *arg = (arginfo_t *)args;
-	int pos = 0;
 	char *dir = arg->pagedir;
 	webpage_t *page;
-	int idx = 0;
+	int idx = 1;
 
 	// keep going as long as there is no next page
 	while ((page = pageload(idx, dir)) != NULL) {
 		char *word;
+		int pos = 0;
 
 		// while the word is still found
 		while ((pos = webpage_getNextWord(page,pos,&word)) > 0) {
