@@ -4,11 +4,13 @@
  * key structures.
  *
  */
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <hash.h>
-#include <queue.h>
 #include <pthread.h>
+#include <lhash.h>
+#include <hash.h>
 
 typedef struct lhashtable {
 	pthread_mutex_t m;

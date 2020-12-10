@@ -18,14 +18,17 @@ typedef struct arginfo {
 	char *pagedir;
 } arginfo_t;
 
+int idx = 0;
+pthread_mutex_t m;
+
 void *makeindex(void *args);
+
 
 void NormalizeWord(char *word) {
 	for (char *alpha = word; *alpha != '\0'; alpha++) {
 		*alpha = tolower(*alpha);
 	}
 }
-
 
 // searches for doc
 bool docSearch(void *doc, const void *id) {
@@ -39,7 +42,6 @@ bool docSearch(void *doc, const void *id) {
 	}
 	return false;
 }
-
 
 // searches for word
 bool wordSearch(void *word, const void *wordKey) {
@@ -60,19 +62,16 @@ void freeQ(void *ep) {
 	qclose(temp->qp);
 }
 
-
 int totalCount = 0;
 void incrementCount(void *ep) {
 	docCount_t *dp = (docCount_t *) ep;
 	totalCount += dp->count;
 }
 
-
 void sumQ(void *elementPtr) {
 	wordDocQueue_t *temp = (wordDocQueue_t *)elementPtr;
 	qapply(temp->qp, incrementCount);
 }
-
 
 bool dir_exists(char *dirname) {
 	static const char crawlerfile[] = ".crawler";
@@ -94,68 +93,22 @@ bool dir_exists(char *dirname) {
 }
 
 
-int main(int argc, char *argv[]) {
-	// check for valid arguments
-	if (argc < 4) {
-		printf("usage: indexer <pagedir> <indexnm> <numThreads>\n");
-		return 1;
-	}
-
-	char *dir = argv[1];
-	char *indexnm = argv[2];
-	int numThreads = atoi(argv[3]);
-
-	//open locked hashtable
-	lhashtable_t *index = lhopen(1000);
-	
-	arginfo_t *args[numThreads];
-	pthread_t thread[numThreads];
-	
-	//check if directory exists
-	if (!dir_exists(dir)) {
-		printf("directory does not exist\n");
-		return 1;
-	}
-
-	//create threads and call makeindex
-	for (int i = 1; i <= numThreads; i++) {
-		args[i] = malloc(sizeof(arginfo_t *));
-		args[i]->lindex = index;
-		args[i]->pagedir = dir;
-		pthread_create(&thread[i], NULL, makeindex, (void *)args[i]);
-	}
-
-	//join threads
-	for (int j =1; j<=numThreads; j++) {
-		pthread_join(thread[j], NULL);
-	}
-
-	// print total number of unique words
-	lhapply(index, sumQ);
-	printf("Total Count: %d\n", totalCount);
-
-	//save index - modified indexsave to take in a locked hash table
-	printf("saving index now\n");
-
-	indexsave(index -> htptr, indexnm);
-	
-	// free all the queues in the index and then the index
-	lhapply(index, freeQ);
-	lhclose(index);
-	return 0;
-}
-
 void *makeindex(void *args) {
 	// get all the various arguments from the void argument passed in 
 	arginfo_t *arg = (arginfo_t *)args;
 	char *dir = arg->pagedir;
 	webpage_t *page;
-	int idx = 1;
+	printf("%s\n", dir);
 
 	// keep going as long as there is no next page
-	while ((page = pageload(idx, dir)) != NULL) {
+	pthread_mutex_lock(&m);
+	idx ++;
+	page = pageload(idx, dir);
+	pthread_mutex_unlock(&m);
+	while (page != NULL) {
 		char *word;
 		int pos = 0;
+		printf("%d\n", idx);
 
 		// while the word is still found
 		while ((pos = webpage_getNextWord(page,pos,&word)) > 0) {
@@ -193,7 +146,67 @@ void *makeindex(void *args) {
 		}
 		// free the page
 		webpage_delete(page);
+		
+		pthread_mutex_lock(&m);
 		idx ++;
+		page = pageload(idx, dir);
+		pthread_mutex_unlock(&m);
 	}
 	return 0;
 }
+
+
+int main(int argc, char *argv[]) {
+	// check for valid arguments
+	if (argc != 4) {
+		printf("usage: indexer <pagedir> <indexnm> <numThreads>\n");
+		return 1;
+	}
+
+	char *dir = argv[1];
+	char *indexnm = argv[2];
+	int numThreads = atoi(argv[3]);
+
+	//open locked hashtable
+	lhashtable_t *index = lhopen(1000);
+	
+	arginfo_t *args[numThreads];
+	pthread_t thread[numThreads];
+	
+	//check if directory exists
+	if (!dir_exists(dir)) {
+		printf("directory does not exist\n");
+		return 1;
+	}
+
+	pthread_mutex_init(&m, NULL);
+	//create threads and call makeindex
+	for (int i = 0; i < numThreads; i++) {
+		args[i] = (arginfo_t *) malloc(sizeof(arginfo_t));
+		args[i]->lindex = index;
+		args[i]->pagedir = dir;
+		pthread_create(&thread[i], NULL, makeindex, (void *)args[i]);
+	}
+
+	//join threads
+	for (int j = 0; j < numThreads; j++) {
+		pthread_join(thread[j], NULL);
+		free(args[j]);
+	}
+
+	// print total number of unique words
+	lhapply(index, sumQ);
+	printf("Total Count: %d\n", totalCount);
+
+	//save index - modified indexsave to take in a locked hash table
+	printf("saving index now\n");
+
+	indexsave(index -> htptr, indexnm);
+	
+	// free all the queues in the index and then the index
+	lhapply(index, freeQ);
+	lhclose(index);
+	pthread_mutex_destroy(&m);
+	return 0;
+}
+

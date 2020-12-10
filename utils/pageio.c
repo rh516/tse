@@ -74,7 +74,7 @@ webpage_t *pageload(int id, char *dirnm)
 		sprintf(idStr, "%i", id);
 		strcat(location, idStr);
 
-		if (access(location, F_OK) != 1)
+		if (access(location, F_OK) != -1)
 		{
 			FILE *pageFile = fopen(location, "r");
 			char url[100];
